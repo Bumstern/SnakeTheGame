@@ -1,0 +1,190 @@
+#include <SFML/Graphics.hpp>
+#include <iostream>
+#include <vector>
+#include <cmath>
+using namespace sf;
+
+int kx = 0, ky = -1;
+int widht = 462, height = 462;
+float x = height / 2, y = widht / 2;
+int fruits = 4, CountApples = 0, AppX, AppY;
+int DeadNum = 4;
+int UD = 0, LR = 1;
+std::vector <int> SnakeX(486);
+std::vector <int> SnakeY(486);
+
+////DeadEnd////
+void Dead() {
+	SnakeX[fruits - 1] = -30;
+	SnakeY[fruits - 1] = -30;
+	fruits--;
+	DeadNum--;
+}
+
+////Tail////
+void tail(int x, int y) {
+	int PrevX = SnakeX[0], PrevY = SnakeY[0], Prev2X, Prev2Y;
+	SnakeX[0] = x, SnakeY[0] = y;
+	for (int i = 1; i < fruits; i++) {
+		if (SnakeX[i] == x && SnakeY[i] == y ) {
+			DeadNum = fruits;
+			Dead();
+			break;
+		}
+
+		Prev2X = SnakeX[i];
+		SnakeX[i] = PrevX;
+		PrevX = Prev2X;
+
+		Prev2Y = SnakeY[i];
+		SnakeY[i] = PrevY;
+		PrevY = Prev2Y;
+	}
+}
+
+////Eat////
+void Food() {
+	AppX = (rand() % (widht / 21)) * 21, AppY = (rand() % (height / 21)) * 21;
+	bool test = true;
+	for (int i = 0; i < fruits; i++) {
+		if (AppX == SnakeX[i] && AppY == SnakeY[i]) {
+			test = false;
+			break;
+		}	
+	}
+	if (!test) {
+		Food();
+	}
+	CountApples = 1;
+}
+
+int main() {
+
+	RenderWindow window(VideoMode(widht, height), "MetalGearSolid");
+
+	////Sprite/////
+	Image Snakeimg;	
+	Snakeimg.loadFromFile("img\\Snake.png");
+	Image SnakeTailimg;
+	SnakeTailimg.loadFromFile("img\\Snake2.jpg");
+	Image Fonimg;
+	Fonimg.loadFromFile("img\\Fon.jpg");
+	Image Appleimg;
+	Appleimg.loadFromFile("img\\Apple.png");
+
+	Texture Snaketext;
+	if (!Snaketext.loadFromImage(Snakeimg)) {
+		Snakeimg.create(50, 50, Color(100, 100, 100));
+	}
+	Snakeimg.~Image();
+	Texture SnakeTailtext;
+	if (!SnakeTailtext.loadFromImage(SnakeTailimg)) {
+		SnakeTailimg.create(50, 50, Color(100, 100, 100));
+	}
+	SnakeTailimg.~Image();
+	Texture Fontext;
+	if (!Fontext.loadFromImage(Fonimg)) {
+		Fonimg.create(50, 50, Color(100, 100, 100));
+	}
+	Fonimg.~Image();
+	Texture Appletext;
+	if (!Appletext.loadFromImage(Appleimg)) {
+		Appleimg.create(50, 50, Color(100, 100, 100));
+	}
+	Appleimg.~Image();
+
+	Sprite Snakesprite;
+	Snakesprite.setTexture(Snaketext);
+	Snakesprite.setTextureRect(IntRect(0, 0, 25, 23));
+	Snakesprite.setPosition(x, y);
+	Sprite SnakeTail;
+	SnakeTail.setTexture(SnakeTailtext);
+	SnakeTail.setTextureRect(IntRect(0, 0, 21, 21));
+	SnakeTail.setPosition(x, y);
+	Sprite FonSprite;
+	FonSprite.setTexture(Fontext);
+	FonSprite.setTextureRect(IntRect(0, 0, 21, 21));
+	Sprite AppleSprite;
+	AppleSprite.setTexture(Appletext);
+	AppleSprite.setTextureRect(IntRect(0, 0, 21, 21));
+
+	Clock clock;
+
+	////MainCycle////
+	while (window.isOpen()) {
+		Event event;
+		while (window.pollEvent(event))
+		{
+			if (event.type == Event::Closed)
+				window.close();
+		}
+
+		window.setFramerateLimit(12);
+		int t = clock.getElapsedTime().asMilliseconds();
+		clock.restart();
+		t = t / 60;
+
+		////Play////		
+		if (Keyboard::isKeyPressed(Keyboard::Key::W) && UD) { kx = 0, ky = -1; UD = 0, LR = 1; Snakesprite.setTextureRect(IntRect(0, 0, 25, 23)); }
+		if (Keyboard::isKeyPressed(Keyboard::Key::S) && UD) { kx = 0, ky = 1; UD = 0, LR = 1; Snakesprite.setTextureRect(IntRect(25, 23, -25, -23)); }
+		if (Keyboard::isKeyPressed(Keyboard::Key::D) && LR) { kx = 1, ky = 0; UD = 1, LR = 0; Snakesprite.setTextureRect(IntRect(25, 0, 23, 25)); }
+		if (Keyboard::isKeyPressed(Keyboard::Key::A) && LR) { kx = -1, ky = 0; UD = 1, LR = 0; Snakesprite.setTextureRect(IntRect(48, 25, -23, -25)); }
+		
+		////Eat////		
+		if (!CountApples) {
+			Food();
+		}
+		if (abs(AppX - x) < 1 && abs(AppY - y) < 1) {		
+			fruits = fruits + rand() % 5;
+			CountApples = 0;
+		} 
+		
+		////Move////
+		x = x + 21 * t * kx;	//21 - size of 1 square of the Background
+		y = y + 21 * t * ky;
+		tail(x, y);
+
+		////Borders////
+		if (x > widht - 21) {
+			x = -21;
+		}
+		else if (x < -21) {
+			x = widht;
+		}
+		else if (y > height - 21) {
+			y = -21;
+		}
+		else if (y < -21) {
+			y = height;
+		}		
+
+		////DeadEnd////
+		if (DeadNum > 4) {
+			Dead();
+		}
+
+		////Draw////
+		window.clear();
+		for (int i = 0; i < height; i = i + 21) {		//Draw a Background
+			for (int j = 0; j < widht; j = j + 21) {
+				FonSprite.setPosition(i, j);
+				window.draw(FonSprite);
+			}
+		}
+
+		for (int i = 0; i < fruits; i++) {				//Draw a Snake Tail
+			SnakeTail.setPosition(SnakeX[i], SnakeY[i]);
+			window.draw(SnakeTail);					
+		}
+
+		Snakesprite.setPosition(SnakeX[0], SnakeY[0]);
+		window.draw(Snakesprite);
+		AppleSprite.setPosition(AppX, AppY);
+		window.draw(AppleSprite);
+		window.display();
+
+		
+	}
+
+	return 0;
+}
